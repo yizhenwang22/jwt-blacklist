@@ -1,0 +1,23 @@
+server:
+  port: 8991
+
+spring:
+  application:
+    name: jwt-blacklist
+  datasource:
+    name: brainco-cloud
+    platform: postgres
+    url: jdbc:postgresql://localhost:5432/brainco_cloud
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 30000
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+    hibernate:
+      ddl-auto: update
