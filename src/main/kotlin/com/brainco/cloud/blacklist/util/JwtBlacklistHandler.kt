@@ -5,9 +5,11 @@ import com.brainco.cloud.blacklist.persistence.JwtBlacklistRepository
 import java.util.*
 import javax.servlet.http.HttpServletRequest
 import org.springframework.stereotype.Component
-import io.jsonwebtoken.*
+import jdk.nashorn.internal.runtime.JSType.toLong
 import org.springframework.beans.factory.annotation.Autowired
 import java.sql.Timestamp
+import org.apache.commons.codec.binary.Base64
+import org.json.JSONObject
 
 
 /**
@@ -16,7 +18,7 @@ import java.sql.Timestamp
  * @author Yizhen Wang
  */
 @Component
-class JwtBlacklistHandler(private var signingKey: String = "brainco-cloud-test-secret") {
+class JwtBlacklistHandler {
 
     @Autowired
     private lateinit var jwtBlacklistRepository: JwtBlacklistRepository
@@ -29,28 +31,26 @@ class JwtBlacklistHandler(private var signingKey: String = "brainco-cloud-test-s
     }
 
     fun revokeToken(token: String): Boolean {
-        val claims = Jwts.parser()
-                .setSigningKey(signingKey.toByteArray())
-                .parseClaimsJws(token).body
+        val split_string = token.split(".")
+        val base64EncodedBody = split_string[1]
+        val base64Url = Base64(true)
 
-        val sub: UUID
-        try {
-            sub = UUID.fromString(claims.subject)
-        }
-        catch (e: IllegalArgumentException ){
-            return false
-        }
+        val body = String(base64Url.decode(base64EncodedBody))
+        val tokenBody = JSONObject(body)
 
-        val iat = claims.issuedAt
-        val exp = claims.expiration
+        val sub = UUID.fromString(tokenBody.get("sub") as String)
+        val iat = toLong(tokenBody.get("iat"))
+        val exp = toLong(tokenBody.get("exp"))
+
         val timestamp = Timestamp(System.currentTimeMillis())
-        val ttl = exp.time - timestamp.time
+        val ttl = exp * 1000 - timestamp.time
 
         if(ttl > 0) {
             val jwtBlacklist = JwtBlacklist(sub.toString() + iat.toString(), ttl)
 
             if (!jwtBlacklistRepository.existsById(sub.toString() + iat.toString())) {
                 jwtBlacklistRepository.save(jwtBlacklist)
+                println(sub.toString() + iat.toString())
                 return true
             }
         }
@@ -58,18 +58,16 @@ class JwtBlacklistHandler(private var signingKey: String = "brainco-cloud-test-s
     }
 
     fun invokeToken(token: String): Boolean{
-        val claims = Jwts.parser()
-                .setSigningKey(signingKey.toByteArray())
-                .parseClaimsJws(token).body
+        val split_string = token.split(".")
+        val base64EncodedBody = split_string[1]
+        val base64Url = Base64(true)
 
-        val sub: UUID
-        try {
-            sub = UUID.fromString(claims.subject)
-        }
-        catch (e: IllegalArgumentException ){
-            return false
-        }
-        val iat = claims.issuedAt
+        val body = String(base64Url.decode(base64EncodedBody))
+        val tokenBody = JSONObject(body)
+
+        val sub = UUID.fromString(tokenBody.get("sub") as String)
+        val iat = toLong(tokenBody.get("iat"))
+        val exp = toLong(tokenBody.get("exp"))
 
         if(jwtBlacklistRepository.existsById(sub.toString() + iat.toString())){
             jwtBlacklistRepository.deleteById(sub.toString() + iat.toString())
@@ -80,36 +78,33 @@ class JwtBlacklistHandler(private var signingKey: String = "brainco-cloud-test-s
     }
 
     fun checkExist(token: String): Boolean{
-        val claims = Jwts.parser()
-                .setSigningKey(signingKey.toByteArray())
-                .parseClaimsJws(token).body
+        val split_string = token.split(".")
+        val base64EncodedBody = split_string[1]
+        val base64Url = Base64(true)
 
-        val sub: UUID
-        try {
-            sub = UUID.fromString(claims.subject)
-        }
-        catch (e: IllegalArgumentException ){
-            return false
-        }
-        val iat = claims.issuedAt
+        val body = String(base64Url.decode(base64EncodedBody))
+        val tokenBody = JSONObject(body)
+
+        val sub = UUID.fromString(tokenBody.get("sub") as String)
+        val iat = toLong(tokenBody.get("iat"))
+        val exp = toLong(tokenBody.get("exp"))
+
+        println(sub.toString() + iat.toString())
 
         return jwtBlacklistRepository.existsById(sub.toString() + iat.toString())
     }
 
     fun checkBlacklistRemainingTime(token: String): String{
-        val claims = Jwts.parser()
-                .setSigningKey(signingKey.toByteArray())
-                .parseClaimsJws(token).body
+        val split_string = token.split(".")
+        val base64EncodedBody = split_string[1]
+        val base64Url = Base64(true)
 
-        val sub: UUID
-        try {
-            sub = UUID.fromString(claims.subject)
-        }
-        catch (e: IllegalArgumentException ){
-            return false.toString()
-        }
+        val body = String(base64Url.decode(base64EncodedBody))
+        val tokenBody = JSONObject(body)
 
-        val iat = claims.issuedAt
+        val sub = UUID.fromString(tokenBody.get("sub") as String)
+        val iat = toLong(tokenBody.get("iat"))
+        val exp = toLong(tokenBody.get("exp"))
 
         if(jwtBlacklistRepository.existsById(sub.toString() + iat.toString())) {
             val jwtBlacklist = jwtBlacklistRepository.findById(sub.toString() + iat.toString())

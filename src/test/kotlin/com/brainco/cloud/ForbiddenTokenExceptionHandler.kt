@@ -1,8 +1,6 @@
-package com.brainco.cloud.blacklist
+package com.brainco.cloud
 
-import com.brainco.cloud.core.ErrorCodes
 import com.brainco.cloud.core.exception.RestBaseException
-import com.brainco.cloud.blacklist.exception.ForbiddenException
 import com.brainco.cloud.blacklist.util.JwtBlacklistHandler
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.web.filter.OncePerRequestFilter
@@ -18,20 +16,8 @@ import javax.servlet.http.HttpServletResponse
 class ForbiddenTokenExceptionHandler(private val jwtBlacklistHandler: JwtBlacklistHandler): OncePerRequestFilter() {
     override fun doFilterInternal(req: HttpServletRequest, res: HttpServletResponse, filterChain: FilterChain) {
         try {
-            val token = jwtBlacklistHandler.resolveToken(req)
-            if(token != null && jwtBlacklistHandler.checkExist(token)){
-                throw ForbiddenException(errorCode = ErrorCodes.BAD_USER_CREDENTIALS,
-                        message = "Authorization Expired")
-            }
-            else{
-                filterChain.doFilter(req, res)
-            }
+            filterChain.doFilter(req, res)
         } catch (e: Exception) {
-            println()
-            println()
-            println(e.toString())
-            println()
-            println()
             forbiddenTokenExceptionInternal(req, res, e)
         }
     }

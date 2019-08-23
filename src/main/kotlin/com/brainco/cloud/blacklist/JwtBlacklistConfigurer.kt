@@ -18,7 +18,7 @@ class JwtBlacklistConfigurer(private val jwtBlacklistHandler: JwtBlacklistHandle
     override fun configure(httpSecurity: HttpSecurity){
         httpSecurity.exceptionHandling()
                 .and()
-                .addFilterBefore(ForbiddenTokenExceptionHandler(jwtBlacklistHandler), UsernamePasswordAuthenticationFilter::class.java)
+                .addFilterBefore(JwtBlacklistCheckFilter(jwtBlacklistHandler), UsernamePasswordAuthenticationFilter::class.java)
                 .addFilterBefore(JwtTokenBlacklistFilter(jwtBlacklistHandler, logoutPath), LogoutFilter::class.java)
     }
 }
